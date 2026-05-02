@@ -33,15 +33,24 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assimp_core/main.cpp)
     
     # Manual fallback for common install paths if find_package fails
     if(NOT (assimp_FOUND OR ASSIMP_FOUND))
-        set(ASSIMP_ROOT "C:/Program Files/Assimp")
-        if(EXISTS ${ASSIMP_ROOT})
-            set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
-            file(GLOB ASSIMP_LIBRARIES "${ASSIMP_ROOT}/lib/x64/assimp*.lib")
-            if(ASSIMP_LIBRARIES)
-                set(ASSIMP_FOUND TRUE)
-                message(STATUS "Assimp found manually at ${ASSIMP_ROOT}")
+        set(ASSIMP_ROOT_PATHS 
+            "C:/Program Files/Assimp"
+            "C:/Program Files (x86)/Assimp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/assimp"
+            "$ENV{ASSIMP_ROOT}"
+        )
+        foreach(PATH ${ASSIMP_ROOT_PATHS})
+            if(EXISTS ${PATH})
+                set(ASSIMP_INCLUDE_DIRS "${PATH}/include")
+                file(GLOB ASSIMP_LIBRARIES_LIST "${PATH}/lib/x64/assimp*.lib" "${PATH}/lib/assimp*.lib" "${PATH}/lib/release/assimp*.lib")
+                if(ASSIMP_LIBRARIES_LIST)
+                    set(ASSIMP_LIBRARIES ${ASSIMP_LIBRARIES_LIST})
+                    set(ASSIMP_FOUND TRUE)
+                    message(STATUS "Assimp found manually at ${PATH}")
+                    break()
+                endif()
             endif()
-        endif()
+        endforeach()
     endif()
 
     if(assimp_FOUND OR ASSIMP_FOUND)

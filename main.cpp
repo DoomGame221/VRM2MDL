@@ -682,7 +682,9 @@ void generateQC(const std::string& mdlName, const std::vector<VRMExpression>& ex
 }
 
 #include <filesystem>
+#ifdef _WIN32
 #include <process.h>
+#endif
 
 namespace fs = std::filesystem;
 

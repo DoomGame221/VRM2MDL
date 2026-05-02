@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=VRM2MDL
+Exec=vrm_gui
+Icon=vrm2mdl
+Type=Application
+Categories=Graphics;3DGraphics;
+Comment=VRM to Source Engine MDL Converter
+Terminal=false

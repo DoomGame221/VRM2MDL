@@ -9,16 +9,16 @@ jobs:
   build-and-release:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
 
     - name: Install dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get update
-        sudo apt-get install -y g++ libgtk-3-dev build-essential libassimp-dev cmake
+        sudo apt-get install -y g++ libgtk-3-dev build-essential libassimp-dev cmake fuse libfuse2 wget
 
     - name: Install Assimp via vcpkg (Windows)
       if: matrix.os == 'windows-latest'
@@ -31,7 +31,7 @@ jobs:
     - name: Build C++ Cores (CMake)
       run: |
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/runway/vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
         else
           cmake -B build -DCMAKE_BUILD_TYPE=Release
         fi
@@ -42,15 +42,9 @@ jobs:
       working-directory: ./vrm_gui
       run: cargo build --release
 
-    - name: Package Release (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        mkdir -p VRM2MDL-Linux/cores
-        cp build/bin/libvrm_core.so VRM2MDL-Linux/cores/
-        cp build/bin/libassimp_core.so VRM2MDL-Linux/cores/ || true
-        cp vrm_gui/target/release/vrm_gui VRM2MDL-Linux/
-        cp README.md VRM2MDL-Linux/
-        tar -czvf VRM2MDL-Linux.tar.gz VRM2MDL-Linux
+    - name: Build AppImage (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      run: bash build_appimage.sh
 
     - name: Package Release (Windows)
       if: matrix.os == 'windows-latest'
@@ -67,6 +61,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          VRM2MDL-Linux.tar.gz
+          VRM2MDL-x86_64.AppImage
           VRM2MDL-Windows.zip
         generate_release_notes: true
