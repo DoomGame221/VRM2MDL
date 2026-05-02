@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-release:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y g++ libgtk-3-dev build-essential libassimp-dev cmake
+
+    - name: Install Assimp via vcpkg (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        vcpkg install assimp:x64-windows
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build C++ Cores (CMake)
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/runway/vcpkg/scripts/buildsystems/vcpkg.cmake
+        else
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+        fi
+        cmake --build build --config Release
+      shell: bash
+
+    - name: Build Rust GUI
+      working-directory: ./vrm_gui
+      run: cargo build --release
+
+    - name: Package Release (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p VRM2MDL-Linux/cores
+        cp build/bin/libvrm_core.so VRM2MDL-Linux/cores/
+        cp build/bin/libassimp_core.so VRM2MDL-Linux/cores/ || true
+        cp vrm_gui/target/release/vrm_gui VRM2MDL-Linux/
+        cp README.md VRM2MDL-Linux/
+        tar -czvf VRM2MDL-Linux.tar.gz VRM2MDL-Linux
+
+    - name: Package Release (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        mkdir -p VRM2MDL-Windows/cores
+        cp build/bin/Release/vrm_core.dll VRM2MDL-Windows/cores/
+        cp build/bin/Release/assimp_core.dll VRM2MDL-Windows/cores/ || true
+        cp vrm_gui/target/release/vrm_gui.exe VRM2MDL-Windows/
+        cp README.md VRM2MDL-Windows/
+        7z a VRM2MDL-Windows.zip VRM2MDL-Windows
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          VRM2MDL-Linux.tar.gz
+          VRM2MDL-Windows.zip
+        generate_release_notes: true
